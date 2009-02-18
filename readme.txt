@@ -25,6 +25,15 @@ The "Color" feild option allows you to quickly make background changes using the
 1. Click Install Now.
 1. After it has installed, activate the plugin.
 
+== Frequently Asked Questions ==
+
+= How do I edit a page's background? =
+
+1. Navigate to the settings area on your admin page and click on "Custom Post Background"
+1. Click on the "Edit" link beside the corresponding post or edit.
+1. Modify the settings to your liking.
+1. Click the "Edit Background" button to confirm your changes.
+
 == Screenshots ==
 
 screenshot-1.png
