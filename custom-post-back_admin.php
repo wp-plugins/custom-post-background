@@ -69,18 +69,36 @@ function custPostBack_options()
 		$case = 1;
 	}
 	
+	//check to see if a drop down item was selected
+	if(isset($_POST['custBack_resultspp']) && strlen($_POST['custBack_resultspp']) > 0)
+	{
+		update_option('custBack_resultspp', $_POST['custBack_resultspp']);
+	}
+	
 	//make sure the database is up-to-date and make sure all the backgrounds are created for each post
 	custPostBack_createPostItems();
 	
 	//code to display data
 	echo '<div class="wrap">';
-	echo '<h1>'.constant('custPostBack_name').'</h1>';
+	echo '<h2>'.constant('custPostBack_name').'</h2>';
 	echo '<p />';
 	
 	//the links section
 	echo '<p><a href="http://blogtap.net/software.shtml" target="_blank">More Software</a> | <a href="http://blogtap.net/custom_post_background_plugin.shtml" target="_blank">Donate</a> | <a href="http://blogtap.net/custom_post_background_plugin.shtml" target="_blank">Information</a> | <a href="http://blogtap.net/contact.shtml" target="_blank">Contact Us</a></p>';
 	
-	$queryBacks = "SELECT * FROM ".$table_name." ORDER BY id DESC";
+	//do all of the paging information:
+	$rowsPerPage = get_option('custBack_resultspp');
+
+	//get the pagenumber
+	$pageNum = htmlspecialchars($_GET['pg']);
+	if(!isset($_GET['pg']))
+	{
+		$pageNum = 1;
+	}
+	
+	$offset = ($pageNum - 1) * $rowsPerPage;
+	
+	$queryBacks = "SELECT * FROM ".$table_name." ORDER BY id DESC LIMIT $offset, $rowsPerPage";
 	$results = $wpdb->get_results($queryBacks);
 	
 	if($case == 1)
@@ -93,6 +111,24 @@ function custPostBack_options()
 	{
 		$table_post = $wpdb->posts;
 		echo '<table style="width:75%;" cellspacing="0">';
+		echo '<tr>
+		<td colspan="6" align="right"><form action="'.getPageURL().'" method="POST" id="custompagebackground_pageresults" enctype="multipart/form-data">
+		Results Per Page:<select name="custBack_resultspp" onchange="document.forms[\'custompagebackground_pageresults\'].submit();">';
+		//set up the drop down box so it displays everything properly
+		if($rowsPerPage == 10 || strlen($rowsPerPage) <= 0) echo '<option selected>10</option>';
+		else echo '<option>10</option>';
+		if($rowsPerPage == 25) echo '<option selected>25</option>';
+		else echo '<option>25</option>';
+		if($rowsPerPage == 50) echo '<option selected>50</option>';
+		else echo '<option>50</option>';
+		if($rowsPerPage == 75) echo '<option selected>75</option>';
+		else echo '<option>75</option>';
+		if($rowsPerPage == 100) echo '<option selected>100</option>';
+		else echo '<option>100</option>';
+		
+		echo '</select>
+		</form></td>
+		</tr>';
 		echo '<tr><td><b>Name</b></td><td><b>URL</b></td><td><b>Repeat</b></td><td><b>Color</b></td><td><b>Display</b></td><td></td>';
 		
 		$alt = 0;
@@ -142,7 +178,40 @@ function custPostBack_options()
 			echo '<td><a href="'.getPageURL().'&edit='.$back->id.'">Edit</a></td>';
 			echo '</tr>';
 		}
-		echo '</table';
+		echo '<tr><td colspan="6" align="center" style="padding-top: 10px">';
+		
+		//now echo the pages
+		$queryCount = "SELECT COUNT(id) FROM ".$table_name;
+		$numRows = $wpdb->get_var($queryCount);
+		$maxPage = ceil($numRows/$rowsPerPage);
+		$nav = "";
+		if($pageNum > 1)
+		{
+			$prevPage = $pageNum - 1;
+			echo '&laquo;<a href="'.getPageUrl().'&pg='.$prevPage.'">Previous</a> ';
+		}
+		//if there is only one possible page, then don't display anything... otherwise display something
+		if($maxPage > 1)
+		{
+			for($i = 1; $i <= $maxPage; $i++)
+			{
+				if($i == $pageNum)
+				{
+					echo $i." ";
+				}
+				else
+				{
+					echo '<a href="'.getPageURL().'&pg='.$i.'">'.$i.'</a> ';
+				}
+			}
+		}
+		if ($pageNum < $maxPage)
+		{
+			$nextPage = $pageNum + 1;
+			echo '<a href="'.getPageURL().'&pg='.$nextPage.'">Next</a>&raquo;';
+		}
+		echo '</td></tr>';
+		echo '</table>';
 	}
 	else
 	{

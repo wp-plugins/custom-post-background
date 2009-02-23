@@ -31,8 +31,16 @@ function custompostback_install()
 		require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
 		dbDelta($sql);
 		
-		add_option("custpostback_db_version", $custpostback_db_version);
+		update_option("custpostback_db_version", $custpostback_db_version);
 	}
+	
+	$rowsPerPage = get_option('custBack_resultspp');
+	//if the amount of rows per page is less than the minimum 10, then update it
+	if($rowsPerPage < 10)
+	{
+		update_option('custBack_resultspp', 10);
+	}
+	
 	//update query - uncomment the code upon upgrade to newer version
 /*
 	$installed_ver = get_option( "custpostback_db_version" );

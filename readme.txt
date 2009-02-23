@@ -4,7 +4,7 @@ Donate link: http://blogtap.net/custom_post_background_plugin.shtml
 Tags: background, style, post, modification
 Requires at least: 2.0
 Tested up to: 2.7
-Stable tag: 1.0.0.0
+Stable tag: 1.1.0.0
 
 Create custom backgrounds or styles for your posts and pages.
 
@@ -15,6 +15,9 @@ At the main menu, CPB lists all of your pages/posts and displays any background 
 
 You can change the background with CSS/URL of image to apply to only the background of the post, only on the background of the home/main page, or both pages.
 The "Color" feild option allows you to quickly make background changes using the background-color CSS code. You can enter any color (such as "red," "blue," "green") or enter a hex value, like: #A9A7A7. You can also change the whole page background (not just the post background) of any individual post with the "Display as page background on post page" option.
+
+Version 1.1.0.0 Updates
+-Added paging to administration area.
 
 == Installation ==
 
@@ -36,4 +39,4 @@ The "Color" feild option allows you to quickly make background changes using the
 
 == Screenshots ==
 
-screenshot-1.png
+1. screenshot-1.png

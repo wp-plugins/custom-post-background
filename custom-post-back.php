@@ -3,13 +3,13 @@
 Plugin Name: Custom Post Background
 Plugin URI: http://blogtap.net/custom_post_background_plugin.shtml
 Description: Allow each post or page to have a custom background. Has the ability to edit the style of each post individually.
-Version: 1.0.0.0
+Version: 1.1.0.0
 Author: David Sherret
 Author URI: http://blogtap.net
 */
 define("custPostBack_name", "Custom Post Background");
 define("custPostBack_dbtable", "customBack");
-/*  Copyright 2009  David Sherret (email : email@domain.com)
+/*  Copyright 2009  David Sherret (email : admin@davidsherret.com)
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
