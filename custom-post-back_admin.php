@@ -60,8 +60,21 @@ function custPostBack_options()
 	//check to see if it needs to be edited
 	if($_POST['custBack_hidden_edit'] == 'Y')
 	{
-		//then it is a postback, now update the data
-		$update = "UPDATE ".$table_name." SET url='".$_POST['custBack_url_edit']."',
+		//then it is a postback, check what the Background Source is set as
+		if($_POST['custBack_img_source'] == 0) //image page
+		{
+			$url = $_POST['custBack_img_Database'];
+		}
+		else if($_POST['custBack_img_source'] == 1) //from url
+		{
+			$url = $_POST['custBack_url_edit'];
+		}
+		else //it's disabled
+		{
+			$url = "";
+		}
+		//now update the data
+		$update = "UPDATE ".$table_name." SET url='".$url."',
 		rep='".$_POST['custBack_repeat_edit']."', color='".$_POST['custBack_color_edit']."', css='".$_POST['custBack_css_edit']."',
 		displaytype = '".$_POST['custBack_displaytype_edit']."'
 		WHERE id='".$_POST['custBack_id_edit']."'";
@@ -236,6 +249,14 @@ function custPostBack_options()
 				continue; //don't go any further, but continue processing the other items
 			}
 			
+			//figure out how the background source will be displayed
+			$linkId = "";
+			if(strlen($rEditBack->url) > 0)
+			{
+				//check if the posts table contains the link to the image
+				$linkId = $wpdb->get_var("SELECT id FROM ".$wpdb->posts." WHERE guid='".$rEditBack->url."' LIMIT 1");
+			}
+
 			echo '<h3>Edit Background: '.$resultPosts->post_title.'</h3>';
 
 			echo '<form action="'.getPageURL().'" method="POST" id="custompagebackground_edit" enctype="multipart/form-data">
@@ -247,8 +268,84 @@ function custPostBack_options()
 			Name:</td><td><input type="text" name="custBack_name_edit" readonly value="'.$resultPosts->post_title.'" size="40" /></td>
 			</tr>
 			<tr>
-			<td style="text-align: right; vertical-align: middle;">Image Url:</td><td><input type="text" name="custBack_url_edit"
-			value="'.$rEditBack->url.'" size="40" /></td>
+				<td style="text-align: right; vertical-align: middle;">
+				Background Source:
+				</td>
+				<td>
+				<select name="custBack_img_source"
+				onchange="
+					if(this.selectedIndex == 0)
+					{
+						document.getElementById(\'rowMedia\').style.visibility = \'visible\';
+						document.getElementById(\'rowMedia\').style.display = \'\';
+						document.getElementById(\'rowUrl\').style.visibility = \'hidden\';
+						document.getElementById(\'rowUrl\').style.display = \'none\';
+					}
+					else if(this.selectedIndex == 1)
+					{
+						document.getElementById(\'rowMedia\').style.visibility = \'hidden\';
+						document.getElementById(\'rowMedia\').style.display = \'none\';
+						document.getElementById(\'rowUrl\').style.visibility = \'visible\';
+						document.getElementById(\'rowUrl\').style.display = \'\';
+					}
+					else if(this.selectedIndex == 2)
+					{
+						document.getElementById(\'rowMedia\').style.visibility = \'hidden\';
+						document.getElementById(\'rowMedia\').style.display = \'none\';
+						document.getElementById(\'rowUrl\').style.visibility = \'hidden\';
+						document.getElementById(\'rowUrl\').style.display = \'none\';
+					}
+				">
+					<option value="0"';
+					//make sure the properly selected option is selected
+					if($linkId != "") echo ' selected';
+					echo '>Image From Media Page</option>
+					<option value="1"';
+					if($linkId == "" && strlen($rEditBack->url) > 0) echo ' selected';
+					echo '>Image From Url</option>
+					<option value="2"';
+					if(strlen($rEditBack->url) <= 0) echo ' selected';
+					echo '>Disable</option>
+				</select>
+				</td>
+			</tr>
+			<tr id="rowMedia" style="';
+			//set what the rowMedia visibility should be
+			if($linkId != "") echo 'visibility: visible';
+			if($linkId == "" && strlen($rEditBack->url) > 0) echo 'visibility:hidden; display: none;';
+			if(strlen($rEditBack->url) <= 0) echo 'visibility:hidden; display: none;';
+			echo '">
+			<td style="text-align: right; vertical-align: middle;">Image From Media:</td>
+				<td><select name="custBack_img_Database">';
+				$resultImages = $wpdb->get_results("SELECT id, guid, post_title, post_name FROM ".$wpdb->posts." WHERE post_mime_type LIKE 'image%'");
+				foreach($resultImages as $images)
+				{
+					//display the file
+					if($images->id == $linkId) //if this link is the selected one
+					{
+						echo '<option value="'.$images->guid.'" selected>'.$images->post_title.' ('.$images->post_name.')</option>';
+					}
+					else
+					{
+						echo '<option value="'.$images->guid.'">'.$images->post_title.' ('.$images->post_name.')</option>';
+					}
+				}
+				echo '</select></td>
+			</tr>
+			<tr id="rowUrl" style="';
+			//set what the rowUrl visibility should be
+			if($linkId != "") echo 'visibility:hidden; display: none;';
+			if($linkId == "" && strlen($rEditBack->url) > 0) echo 'visibility: visible;';
+			if(strlen($rEditBack->url) <= 0) echo 'visibility:hidden; display: none;';
+			echo '">
+				<td style="text-align: right; vertical-align: middle;">Image From Url:</td>
+				<td><input type="text" name="custBack_url_edit"
+				value="';
+				
+				if($linkId == "") echo $rEditBack->url; //if the link is not in the posts table, then output the url here
+				
+			echo '" size="40" />
+				</td>
 			</tr>
 			<tr>
 			<td style="text-align: right; vertical-align: middle;">Repeat:</td>
@@ -273,6 +370,7 @@ function custPostBack_options()
 			<tr>
 			<td style="text-align: right; vertical-align: middle;">Display Type</td>
 			<td>';
+			//select the display type
 			if($rEditBack->displaytype == "0") echo '<input type="radio" name="custBack_displaytype_edit" value="0" checked /> Display only on Post Page.<br />';
 			else echo '<input type="radio" name="custBack_displaytype_edit" value="0" /> Display only on Post Page.<br />';
 			if($rEditBack->displaytype == "1") echo '<input type="radio" name="custBack_displaytype_edit" value="1" checked /> Display only on Main/Archives Page.<br />';

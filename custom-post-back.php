@@ -3,7 +3,7 @@
 Plugin Name: Custom Post Background
 Plugin URI: http://blogtap.net/custom_post_background_plugin.shtml
 Description: Allow each post or page to have a custom background. Has the ability to edit the style of each post individually.
-Version: 1.1.0.0
+Version: 1.2.0.0
 Author: David Sherret
 Author URI: http://blogtap.net
 */

@@ -4,7 +4,7 @@ Donate link: http://blogtap.net/custom_post_background_plugin.shtml
 Tags: background, style, post, modification
 Requires at least: 2.0
 Tested up to: 2.7
-Stable tag: 1.1.0.0
+Stable tag: 1.2.0.0
 
 Create custom backgrounds or styles for your posts and pages.
 
@@ -18,6 +18,8 @@ The "Color" feild option allows you to quickly make background changes using the
 
 Version 1.1.0.0 Updates
 -Added paging to administration area.
+Version 1.2.0.0 Updates
+-Added option of setting background image to image in media page
 
 == Installation ==
 
