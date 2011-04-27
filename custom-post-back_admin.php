@@ -3,7 +3,7 @@
 	This file contains all the admin data needed to make the admin page
 */
 
-// Updated: 14/04/2011 - Malcolm Shergold - Admin modified to use meta-box interface
+// Updated: 14/04/2011 - Malcolm Shergold - Admin screen now uses meta-box interface
 
 // WP 3.0+
 add_action('admin_menu', 'postback_add_custom_box'); 
