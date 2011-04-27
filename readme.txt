@@ -3,8 +3,8 @@ Contributors: blogtap.net
 Donate link: http://blogtap.net/custom_post_background_plugin.shtml
 Tags: background, style, post, modification
 Requires at least: 2.0
-Tested up to: 2.7
-Stable tag: 1.2.0.0
+Tested up to: 3.1.1
+Stable tag: 1.3.0.0
 
 Create custom backgrounds or styles for your posts and pages.
 
@@ -21,6 +21,12 @@ Version 1.1.0.0 Updates
 Version 1.2.0.0 Updates
 -Added option of setting background image to image in media page
 
+Version 1.3.0.0 Updates
+-Removed css field DEFAULT value
+-Implemented database version update
+-Admin page changed to meta-box on Page/Post edit pages
+-Display type changed from radio buttons to drop down list
+
 == Installation ==
 
 1. Download the custom-post-background.zip
@@ -34,10 +40,10 @@ Version 1.2.0.0 Updates
 
 = How do I edit a page's background? =
 
-1. Navigate to the settings area on your admin page and click on "Custom Post Background"
-1. Click on the "Edit" link beside the corresponding post or edit.
+1. Navigate to the editor for the Page you want to add/edit the background image
+1. Locate the "Page Background" meta-box 
 1. Modify the settings to your liking.
-1. Click the "Edit Background" button to confirm your changes.
+1. Click the "Update" button to confirm your changes.
 
 == Screenshots ==
 
