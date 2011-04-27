@@ -3,62 +3,29 @@
 	This file contains all the admin data needed to make the admin page
 */
 
-//create a function to get the posts and display the information
+// Updated: 14/04/2011 - Malcolm Shergold - Admin modified to use meta-box interface
 
-add_action('admin_menu', 'custPostBack_plugin_menu');
-function custPostBack_plugin_menu()
-{
-	add_options_page('Settings', constant('custPostBack_name'), 8, __FILE__, 'custPostBack_options');
-}
+// WP 3.0+
+add_action('admin_menu', 'postback_add_custom_box'); 
+add_action('save_post', 'save_custom_data', 1, 2);
+add_action('delete_post', 'delete_custom_data' );
 
-/* custPostBack_createPostItems(): This function gets all the posts on the wordpress blog and creates a corresponding item in */
-function custPostBack_createPostItems()
-{
+function save_custom_data($post_id, $post) {
 	global $wpdb;
-	$table_post = $wpdb->posts;
-	$table_back = $wpdb->prefix . constant("custPostBack_dbtable");	
-	$selectPosts = "SELECT id, post_title FROM $table_post WHERE post_status='publish'";
-	$posts = $wpdb->get_results($selectPosts);
-	foreach($posts as $post)
-	{
-		$selectBacks = "SELECT id FROM $table_back WHERE postid=".$post->id;
-		$backs = $wpdb->get_results($selectBacks);
-		//if the post does not exist
-		if(!$backs)
-		{
-			$createBack = "INSERT INTO ".$table_back." VALUES(NULL, '".$post->id."',NULL,'none',NULL,NULL,'3')";
-			$result = $wpdb->query($createBack);
-		}
+	
+  if (!$post_id) $post_id = $_POST['post_ID'];
+  if (!$post_id) return $post;
+	
+  // verify this came from the our screen and with proper authorization,
+  // because save_post can be triggered at other times
+  // MJS - Added !isset($_POST['postback_noncename'])
+  if (!isset($_POST['postback_noncename']) || !wp_verify_nonce( $_POST['postback_noncename'], plugin_basename(__FILE__) ) )
+  {			
+      return $post;
 	}
-}
-
-function admin_menu_parent() {
-	global $wp_version;
-	if (version_compare($wp_version, '2.7', '>='))
-		return 'options-general.php';
-	else
-		return 'edit.php';
-}
-
-function getPageURL() {
-	if (function_exists('admin_url')) {
-		$base_url = admin_url(admin_menu_parent());
-	} else {
-		$base_url = get_option('siteurl') . '/wp-admin/' . admin_menu_parent();
-	}
-	$page = plugin_basename(__FILE__);
-	return $base_url.'?page=' . $page;
-}
-
-//here is the page that contains the options that are going to be used for the plugin
-function custPostBack_options()
-{
-	global $wpdb;
-	$case = 0;
-	//get the table name
-	$table_name = $wpdb->prefix . constant("custPostBack_dbtable");	
+	
 	//check to see if it needs to be edited
-	if($_POST['custBack_hidden_edit'] == 'Y')
+	if (isset($_POST['custBack_img_source']))
 	{
 		//then it is a postback, check what the Background Source is set as
 		if($_POST['custBack_img_source'] == 0) //image page
@@ -73,327 +40,206 @@ function custPostBack_options()
 		{
 			$url = "";
 		}
-		//now update the data
-		$update = "UPDATE ".$table_name." SET url='".$url."',
-		rep='".$_POST['custBack_repeat_edit']."', color='".$_POST['custBack_color_edit']."', css='".$_POST['custBack_css_edit']."',
-		displaytype = '".$_POST['custBack_displaytype_edit']."'
-		WHERE id='".$_POST['custBack_id_edit']."'";
+		
+		$table_name = $wpdb->prefix . constant("custPostBack_dbtable");			
+		if ($_POST['custBack_id_edit'] != 0)
+		{
+			//now update the data
+			$update = "UPDATE ".$table_name." SET url='".$url."',
+				rep='".$_POST['custBack_repeat_edit']."', color='".$_POST['custBack_color_edit']."', css='".$_POST['custBack_css_edit']."',
+				displaytype = '".$_POST['custBack_displaytype_edit']."'
+				WHERE id='".$_POST['custBack_id_edit']."'";
+		}
+		else
+		{
+			//now add the data
+			$update  = "INSERT INTO ".$table_name." (postid,url,rep,color,css,displaytype)"; 
+			$update .= " VALUES('".$post_id."', '".$url."', '".$_POST['custBack_repeat_edit']."', '".$_POST['custBack_color_edit']."', '".$_POST['custBack_css_edit']."', '".$_POST['custBack_displaytype_edit']."')";
+		}
+		
+
 		$wpdb->query($update);
-		$case = 1;
-	}
+		
+		$msg  = "Save Background Settings SQL:\n";
+		$msg .= $update . "\n";
+	}	
+}
+
+function delete_custom_data($post_id) {
+	global $wpdb;
 	
-	//check to see if a drop down item was selected
-	if(isset($_POST['custBack_resultspp']) && strlen($_POST['custBack_resultspp']) > 0)
-	{
-		update_option('custBack_resultspp', $_POST['custBack_resultspp']);
-	}
+	$table_name = $wpdb->prefix . constant("custPostBack_dbtable");			
 	
-	//make sure the database is up-to-date and make sure all the backgrounds are created for each post
-	custPostBack_createPostItems();
+	// delete the link to the post in the custBack table
+	$deleteBack = "DELETE FROM $table_name WHERE postid='".$post_id."' LIMIT 1";
+	$wpdb->query($deleteBack);
+}
+
+function postback_add_custom_box() { 
+	if( function_exists( 'add_meta_box' )) {		
+		add_meta_box( 'custPostBack', __( 'Page Background' ), 'custPostBack_metabox', 'post', 'normal', 'core' );
+		add_meta_box( 'custPostBack', __( 'Page Background' ), 'custPostBack_metabox', 'page', 'normal', 'core' );
+	} 
+}
+
+//here is the page that contains the options that are going to be used for the plugin
+function custPostBack_metabox($post, $custPostBack_callbackargs)
+{
+	global $wpdb;
+	global $post_id;
 	
+	//get the table names
+	$table_name = $wpdb->prefix . constant("custPostBack_dbtable");	
+	$table_post = $wpdb->posts;
+
 	//code to display data
 	echo '<div class="wrap">';
-	echo '<h2>'.constant('custPostBack_name').'</h2>';
-	echo '<p />';
 	
 	//the links section
 	echo '<p><a href="http://blogtap.net/software.shtml" target="_blank">More Software</a> | <a href="http://blogtap.net/custom_post_background_plugin.shtml" target="_blank">Donate</a> | <a href="http://blogtap.net/custom_post_background_plugin.shtml" target="_blank">Information</a> | <a href="http://blogtap.net/contact.shtml" target="_blank">Contact Us</a></p>';
 	
-	//do all of the paging information:
-	$rowsPerPage = get_option('custBack_resultspp');
-
-	//get the pagenumber
-	$pageNum = htmlspecialchars($_GET['pg']);
-	if(!isset($_GET['pg']))
+	//check to see if this post has a background entry in the DB
+	$queryEditOne = "SELECT * FROM ".$table_name." WHERE postid='".$post_id."' LIMIT 1";
+	
+	$rEditBack = $wpdb->get_row($queryEditOne);
+	
+	if(!$rEditBack)
 	{
-		$pageNum = 1;
+		// Set-up defaults
+		$rEditBack->id = 0;	// 0 = No entry for this Post
+		$rEditBack->postid = $post_id;
+		$rEditBack->url = '';
+		$rEditBack->rep = "none";
+		$rEditBack->color = '';
+		$rEditBack->css = '';
+		$rEditBack->displaytype = "0";
 	}
-	
-	$offset = ($pageNum - 1) * $rowsPerPage;
-	
-	$queryBacks = "SELECT * FROM ".$table_name." ORDER BY id DESC LIMIT $offset, $rowsPerPage";
-	$results = $wpdb->get_results($queryBacks);
-	
-	if($case == 1)
-	{
-		echo '<p style="color: blue;">The background has been updated.</p>';
-	}
-	
-	//Get the results and display them
-	if($results)
-	{
-		$table_post = $wpdb->posts;
-		echo '<table style="width:75%;" cellspacing="0">';
-		echo '<tr>
-		<td colspan="6" align="right"><form action="'.getPageURL().'" method="POST" id="custompagebackground_pageresults" enctype="multipart/form-data">
-		Results Per Page:<select name="custBack_resultspp" onchange="document.forms[\'custompagebackground_pageresults\'].submit();">';
-		//set up the drop down box so it displays everything properly
-		if($rowsPerPage == 10 || strlen($rowsPerPage) <= 0) echo '<option selected>10</option>';
-		else echo '<option>10</option>';
-		if($rowsPerPage == 25) echo '<option selected>25</option>';
-		else echo '<option>25</option>';
-		if($rowsPerPage == 50) echo '<option selected>50</option>';
-		else echo '<option>50</option>';
-		if($rowsPerPage == 75) echo '<option selected>75</option>';
-		else echo '<option>75</option>';
-		if($rowsPerPage == 100) echo '<option selected>100</option>';
-		else echo '<option>100</option>';
 		
-		echo '</select>
-		</form></td>
-		</tr>';
-		echo '<tr><td><b>Name</b></td><td><b>URL</b></td><td><b>Repeat</b></td><td><b>Color</b></td><td><b>Display</b></td><td></td>';
-		
-		$alt = 0;
-		foreach($results as $back)
-		{
-			$queryPosts = "SELECT id, post_title FROM $table_post WHERE id='".$back->postid."'";
-			
-			$resultPosts = $wpdb->get_row($queryPosts);
-			
-			//if a post doesn't show up then you should delete the link to it in the custBack table
-			if(!$resultPosts)
-			{
-				$deleteBack = "DELETE FROM $table_name WHERE id='".$back->id."' LIMIT 1";
-				$wpdb->query($deleteBack);
-				echo 'done';
-				continue; //don't go any further, but continue processing the other items
-			}
-			
-			//rotates between the two different rows
-			$alt++;
-			if($alt % 2 == 1)
-			{
-				echo '<tr>';
-			}
-			else
-			{
-				echo '<tr style="background-color: #eee;">';
-			}
-			echo '<td>'.$resultPosts->post_title.'</td>';
-			echo '<td>';
-			if(strlen($back->url) > 0)
-			{
-				echo substr(str_replace("http://","",$back->url),0,20).'...';
-			}
-			echo '</td>';
-			if($back->rep == 'y' || $back->rep == 'x') echo '<td>repeat-'.$back->rep.'</td>';
-			else echo '<td>none</td>';
-			echo '<td>'.$back->color.'</td>';
-			
-			if($back->displaytype == "0") echo '<td>Post Page</td>';
-			else if($back->displaytype == "1") echo '<td>Main Page</td>';
-			else if($back->displaytype == "2") echo '<td>Both</td>';
-			else if($back->displaytype == "3") echo '<td>Post Page Background</td>';
-			else if($back->displaytype == "4") echo '<td>Disabled</td>';
-			else echo '<td></td>';
-			
-			echo '<td><a href="'.getPageURL().'&edit='.$back->id.'">Edit</a></td>';
-			echo '</tr>';
-		}
-		echo '<tr><td colspan="6" align="center" style="padding-top: 10px">';
-		
-		//now echo the pages
-		$queryCount = "SELECT COUNT(id) FROM ".$table_name;
-		$numRows = $wpdb->get_var($queryCount);
-		$maxPage = ceil($numRows/$rowsPerPage);
-		$nav = "";
-		if($pageNum > 1)
-		{
-			$prevPage = $pageNum - 1;
-			echo '&laquo;<a href="'.getPageUrl().'&pg='.$prevPage.'">Previous</a> ';
-		}
-		//if there is only one possible page, then don't display anything... otherwise display something
-		if($maxPage > 1)
-		{
-			for($i = 1; $i <= $maxPage; $i++)
-			{
-				if($i == $pageNum)
-				{
-					echo $i." ";
-				}
-				else
-				{
-					echo '<a href="'.getPageURL().'&pg='.$i.'">'.$i.'</a> ';
-				}
-			}
-		}
-		if ($pageNum < $maxPage)
-		{
-			$nextPage = $pageNum + 1;
-			echo '<a href="'.getPageURL().'&pg='.$nextPage.'">Next</a>&raquo;';
-		}
-		echo '</td></tr>';
-		echo '</table>';
-	}
-	else
+	//figure out how the background source will be displayed
+	$linkId = "";
+	if(strlen($rEditBack->url) > 0)
 	{
-		echo 'There are currently no backgrounds. Please add one below.<br />';
+		//check if the posts table contains the link to the image
+		$linkId = $wpdb->get_var("SELECT id FROM ".$wpdb->posts." WHERE guid='".$rEditBack->url."' LIMIT 1");
 	}
-	
-	//check to see if the edit background is set
-	if(isset($_GET['edit']))
-	{
-		$queryEditOne = "SELECT * FROM ".$table_name." WHERE id='".$_GET['edit']."' LIMIT 1";
-		$rEditBack = $wpdb->get_row($queryEditOne);
-		if($rEditBack)
-		{
-			$queryPosts = "SELECT id, post_title FROM $table_post WHERE id='".$rEditBack->postid."'";
-			$resultPosts = $wpdb->get_row($queryPosts);
-			
-			//if a post doesn't show up then you should delete the link to it in the custBack table
-			if(!$resultPosts)
-			{
-				$deleteBack = "DELETE FROM $table_name WHERE id='".$rEditBack->id."' LIMIT 1";
-				$wpdb->query($deleteBack);
-				continue; //don't go any further, but continue processing the other items
-			}
-			
-			//figure out how the background source will be displayed
-			$linkId = "";
-			if(strlen($rEditBack->url) > 0)
-			{
-				//check if the posts table contains the link to the image
-				$linkId = $wpdb->get_var("SELECT id FROM ".$wpdb->posts." WHERE guid='".$rEditBack->url."' LIMIT 1");
-			}
+	$resultImages = $wpdb->get_results("SELECT id, guid, post_title, post_name FROM ".$wpdb->posts." WHERE post_mime_type LIKE 'image%'");
 
-			echo '<h3>Edit Background: '.$resultPosts->post_title.'</h3>';
+	// Use nonce for verification
+	wp_nonce_field( plugin_basename(__FILE__), 'postback_noncename' );
 
-			echo '<form action="'.getPageURL().'" method="POST" id="custompagebackground_edit" enctype="multipart/form-data">
-			<input type="hidden" name="custBack_hidden_edit" value="Y" />
-			<input type="hidden" name="custBack_id_edit" value="'.$rEditBack->id.'" />
-			<table>
+	//echo '<h3>Edit Background: '.$resultPosts->post_title.'</h3>';
+
+	echo '
+		<input type="hidden" name="custBack_id_edit" value="'.$rEditBack->id.'" />
+			
+		<div id="postcustomstuff">
+		<p>
+		<table>
 			<tr>
-			<td style="text-align: right; vertical-align: middle;">
-			Name:</td><td><input type="text" name="custBack_name_edit" readonly value="'.$resultPosts->post_title.'" size="40" /></td>
-			</tr>
-			<tr>
-				<td style="text-align: right; vertical-align: middle;">
-				Background Source:
-				</td>
-				<td>
-				<select name="custBack_img_source"
+				<td width="25%" style="text-align: right; vertical-align: middle;">'.__('Source').':</td>
+				<td width="75%" >
+				<select name="custBack_img_source" id="custBack_img_source"
 				onchange="
-					if(this.selectedIndex == 0)
+					if(this.options[this.selectedIndex].value == 0)
 					{
 						document.getElementById(\'rowMedia\').style.visibility = \'visible\';
 						document.getElementById(\'rowMedia\').style.display = \'\';
 						document.getElementById(\'rowUrl\').style.visibility = \'hidden\';
 						document.getElementById(\'rowUrl\').style.display = \'none\';
 					}
-					else if(this.selectedIndex == 1)
+					else if(this.options[this.selectedIndex].value == 1)
 					{
 						document.getElementById(\'rowMedia\').style.visibility = \'hidden\';
 						document.getElementById(\'rowMedia\').style.display = \'none\';
 						document.getElementById(\'rowUrl\').style.visibility = \'visible\';
 						document.getElementById(\'rowUrl\').style.display = \'\';
 					}
-					else if(this.selectedIndex == 2)
+					else if(this.options[this.selectedIndex].value == 2)
 					{
 						document.getElementById(\'rowMedia\').style.visibility = \'hidden\';
 						document.getElementById(\'rowMedia\').style.display = \'none\';
 						document.getElementById(\'rowUrl\').style.visibility = \'hidden\';
 						document.getElementById(\'rowUrl\').style.display = \'none\';
 					}
-				">
-					<option value="0"';
-					//make sure the properly selected option is selected
-					if($linkId != "") echo ' selected';
-					echo '>Image From Media Page</option>
-					<option value="1"';
-					if($linkId == "" && strlen($rEditBack->url) > 0) echo ' selected';
-					echo '>Image From Url</option>
-					<option value="2"';
-					if(strlen($rEditBack->url) <= 0) echo ' selected';
-					echo '>Disable</option>
+				">';
+					
+	//make sure the properly selected option is selected
+	$isMediaImage = ($linkId != "");
+	$isImageURL = (($linkId == "") && (strlen($rEditBack->url) > 0));
+	
+	if (count($resultImages) >= 1)				
+		echo '<option value="0" '.($isMediaImage ? 'selected' : '').'>'.__('Image From Media').' &nbsp</option>';			
+	echo '<option value="1" '.($isImageURL ? 'selected' : '').'>'.__('Image From URL').'</option>';
+	echo '<option value="2" '.((!$isMediaImage && !$isImageURL) ? 'selected' : '').'>'.__('Disable').'</option>';					
+	echo '
 				</select>
 				</td>
 			</tr>
-			<tr id="rowMedia" style="';
-			//set what the rowMedia visibility should be
-			if($linkId != "") echo 'visibility: visible';
-			if($linkId == "" && strlen($rEditBack->url) > 0) echo 'visibility:hidden; display: none;';
-			if(strlen($rEditBack->url) <= 0) echo 'visibility:hidden; display: none;';
-			echo '">
-			<td style="text-align: right; vertical-align: middle;">Image From Media:</td>
+			';
+			
+	echo '<tr id="rowMedia" style="visibility:'.($isMediaImage ? 'visible;' : 'hidden; display:none;').'">
+				<td style="text-align: right; vertical-align: middle;">Image From Media:</td>
 				<td><select name="custBack_img_Database">';
-				$resultImages = $wpdb->get_results("SELECT id, guid, post_title, post_name FROM ".$wpdb->posts." WHERE post_mime_type LIKE 'image%'");
-				foreach($resultImages as $images)
-				{
-					//display the file
-					if($images->id == $linkId) //if this link is the selected one
-					{
-						echo '<option value="'.$images->guid.'" selected>'.$images->post_title.' ('.$images->post_name.')</option>';
-					}
-					else
-					{
-						echo '<option value="'.$images->guid.'">'.$images->post_title.' ('.$images->post_name.')</option>';
-					}
-				}
-				echo '</select></td>
+	foreach($resultImages as $images)
+	{
+		//display the file
+		echo '<option value="'.$images->guid.'" '.($images->id == $linkId ? 'selected' : '').'>'.$images->post_title.' ('.$images->post_name.')</option>';
+	}
+	echo '</select></td>
 			</tr>
-			<tr id="rowUrl" style="';
-			//set what the rowUrl visibility should be
-			if($linkId != "") echo 'visibility:hidden; display: none;';
-			if($linkId == "" && strlen($rEditBack->url) > 0) echo 'visibility: visible;';
-			if(strlen($rEditBack->url) <= 0) echo 'visibility:hidden; display: none;';
-			echo '">
-				<td style="text-align: right; vertical-align: middle;">Image From Url:</td>
+			';
+			
+	echo '<tr id="rowUrl" style="visibility:'.($isImageURL ? 'visible;' : 'hidden; display:none;').'">
+				<td style="text-align: right; vertical-align: middle;">URL:</td>
 				<td><input type="text" name="custBack_url_edit"
 				value="';
 				
-				if($linkId == "") echo $rEditBack->url; //if the link is not in the posts table, then output the url here
+	if($linkId == "") echo $rEditBack->url; //if the link is not in the posts table, then output the url here
 				
-			echo '" size="40" />
+	echo '" size="40" class="widefat" />
 				</td>
 			</tr>
 			<tr>
-			<td style="text-align: right; vertical-align: middle;">Repeat:</td>
-			<td><select name="custBack_repeat_edit">';
-			//area for selecting repeat type
-			if($rEditBack->rep == "none") echo '<option value="none" selected>None</option>';
-			else echo '<option value="none">None</option>';
-			if ($rEditBack->rep == "x") echo '<option value="x" selected>Repeat X</option>';
-			else echo '<option value="x">Repeat X</option>';
-			if ($rEditBack->rep == "y") echo '<option value="y" selected>Repeat Y</option>';
-			else echo '<option value="y">Repeat Y</option>';
-			if ($rEditBack->rep == "both") echo '<option value="both" selected>Both</option>';
-			else echo '<option value="both">Both</option>';
-			echo '</select></td>
-			</tr>
-			<tr>
-			<td style="text-align: right; vertical-align: middle;">Color:</td><td><input type="text" name="custBack_color_edit" value="'.$rEditBack->color.'" size="40" /></td>
-			</tr>
-			<tr>
-			<td style="text-align: right; vertical-align: middle;">CSS:</td><td><textarea name="custBack_css_edit" rows="4" cols="40">'.$rEditBack->css.'</textarea></td>
-			</tr>
-			<tr>
-			<td style="text-align: right; vertical-align: middle;">Display Type</td>
-			<td>';
-			//select the display type
-			if($rEditBack->displaytype == "0") echo '<input type="radio" name="custBack_displaytype_edit" value="0" checked /> Display only on Post Page.<br />';
-			else echo '<input type="radio" name="custBack_displaytype_edit" value="0" /> Display only on Post Page.<br />';
-			if($rEditBack->displaytype == "1") echo '<input type="radio" name="custBack_displaytype_edit" value="1" checked /> Display only on Main/Archives Page.<br />';
-			else echo '<input type="radio" name="custBack_displaytype_edit" value="1" /> Display only on Main/Archives Page.<br />';
-			if($rEditBack->displaytype == "2") echo '<input type="radio" name="custBack_displaytype_edit" value="2" checked /> Display on both pages.<br />';
-			else echo '<input type="radio" name="custBack_displaytype_edit" value="2" /> Display on both pages.<br />';
-			if($rEditBack->displaytype == "3") echo '<input type="radio" name="custBack_displaytype_edit" value="3" checked /> Display as page background on post page.<br />';
-			else echo '<input type="radio" name="custBack_displaytype_edit" value="3" /> Display as page background on post page.<br />';
-			if($rEditBack->displaytype == "4") echo '<input type="radio" name="custBack_displaytype_edit" value="4" checked /> Disable - Do Not display.';
-			else echo '<input type="radio" name="custBack_displaytype_edit" value="4" /> Disable - Do Not display.';
+				<td style="text-align: right; vertical-align: middle;">'.__('Repeat').':</td>
+				<td><select name="custBack_repeat_edit">';
 			
-			echo '</td>
+	//area for selecting repeat type
+	echo '<option value="none" '.($rEditBack->rep == "none" ? 'selected' : '').'>'.__('None').'</option>';			
+	echo '<option value="x" '.($rEditBack->rep == "x" ? 'selected' : '').'>'.__('Repeat X').'</option>';
+	echo '<option value="y" '.($rEditBack->rep == "y" ? 'selected' : '').'>'.__('Repeat Y').'</option>';
+	echo '<option value="both" '.($rEditBack->rep == "both" ? 'selected' : '').'>'.__('Both').'</option>';
+	echo '</select></td>
+			</tr>
+			
+			<tr>
+				<td style="text-align: right; vertical-align: middle;">'.__('Background Color').':</td><td><input type="text" name="custBack_color_edit" value="'.$rEditBack->color.'" size="40" /></td>
 			</tr>
 			<tr>
-			<td style="text-align: right; vertical-align: top; padding-top: 5px;" colspan="2"><a href="'.getPageURL().'">Cancel</a> - <span class="submit"><input type="submit" class="button-primary" value="Edit Background" /></span></td>
+				<td style="text-align: right; vertical-align: middle;">CSS:</td><td><textarea name="custBack_css_edit" rows="4" cols="40">'.$rEditBack->css.'</textarea></td>
 			</tr>
-			</table>
-			</form>
+			<tr>
+				<td style="text-align: right; vertical-align: middle;">'.__('Display Type').':</td>
+			<td>';
+			
+	//area for selecting display type
+	echo '
+			<select name="custBack_displaytype_edit">
+				<option value="0" '.($rEditBack->displaytype == "0" ? 'selected' : '').'>'.__('Only on Post Page').'</option>
+				<option value="1" '.($rEditBack->displaytype == "1" ? 'selected' : '').'>'.__('Only on Main/Archives Page').'</option>
+				<option value="2" '.($rEditBack->displaytype == "2" ? 'selected' : '').'>'.__('On both pages').'</option>
+				<option value="3" '.($rEditBack->displaytype == "3" ? 'selected' : '').'>'.__('Post Page background').'</option>
+				<option value="4" '.($rEditBack->displaytype == "4" ? 'selected' : '').'>'.__('Disable - Do Not display').'</option>
+			</select>
+			</td>
+
+			</tr>
+		</table>
+		</p>
+		</div>			
 			';
-		}
-	}
 	
-	echo '</div>';
+	echo '</div>';	
 }
+
 
 ?>
