@@ -224,11 +224,12 @@ function custPostBack_metabox($post, $custPostBack_callbackargs)
 	//area for selecting display type
 	echo '
 			<select name="custBack_displaytype_edit">
-				<option value="0" '.($rEditBack->displaytype == "0" ? 'selected' : '').'>'.__('Only on Post Page').'</option>
-				<option value="1" '.($rEditBack->displaytype == "1" ? 'selected' : '').'>'.__('Only on Main/Archives Page').'</option>
-				<option value="2" '.($rEditBack->displaytype == "2" ? 'selected' : '').'>'.__('On both pages').'</option>
-				<option value="3" '.($rEditBack->displaytype == "3" ? 'selected' : '').'>'.__('Post Page background').'</option>
-				<option value="4" '.($rEditBack->displaytype == "4" ? 'selected' : '').'>'.__('Disable - Do Not display').'</option>
+				<option value="'.CPB_DISPLAY_POSTPAGE.'" '.($rEditBack->displaytype == CPB_DISPLAY_POSTPAGE ? 'selected' : '').'>'.__('Only on Post Page').'</option>
+				<option value="'.CPB_DISPLAY_MAINPAGE.'" '.($rEditBack->displaytype == CPB_DISPLAY_MAINPAGE ? 'selected' : '').'>'.__('Only on Main/Archives Page').'</option>
+				<option value="'.CPB_DISPLAY_BOTHPAGES.'" '.($rEditBack->displaytype == CPB_DISPLAY_BOTHPAGES ? 'selected' : '').'>'.__('On both pages').'</option>
+				<option value="'.CPB_DISPLAY_BACKGROUND.'" '.($rEditBack->displaytype == CPB_DISPLAY_BACKGROUND ? 'selected' : '').'>'.__('Post Page background').'</option>
+				<option value="'.CPB_DISPLAY_WHOLEPAGE.'" '.($rEditBack->displaytype == CPB_DISPLAY_WHOLEPAGE ? 'selected' : '').'>'.__('Whole Page').'</option>
+				<option value="'.CPB_DISPLAY_DISABLED.'" '.($rEditBack->displaytype == CPB_DISPLAY_DISABLED ? 'selected' : '').'>'.__('Disable - Do Not display').'</option>
 			</select>
 			</td>
 

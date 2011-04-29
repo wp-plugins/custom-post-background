@@ -27,7 +27,7 @@ function custompostback_install()
 		rep VARCHAR(5) NULL DEFAULT 'none',
 		color VARCHAR(25) NULL,
 		css TEXT NULL,
-		displaytype TINYINT(1) NULL DEFAULT '3',
+		displaytype TINYINT(1) NULL DEFAULT '".CPB_DISPLAY_BACKGROUND."',
 		UNIQUE KEY id (id)
 		);";
 		

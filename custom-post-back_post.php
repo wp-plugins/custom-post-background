@@ -1,4 +1,11 @@
 <?php
+	define('CPB_DISPLAY_POSTPAGE', '0');
+	define('CPB_DISPLAY_MAINPAGE', '1');
+	define('CPB_DISPLAY_BOTHPAGES', '2');
+	define('CPB_DISPLAY_BACKGROUND', '3');
+	define('CPB_DISPLAY_DISABLED', '4');
+	define('CPB_DISPLAY_WHOLEPAGE', '5');
+	
 	add_action('the_content', 'custompostback_process');
 	
 	function custompostback_style($results, $new_data)
@@ -61,17 +68,17 @@
 		$results = $wpdb->get_row($queryBacks);
 		
 		//check if the display type is set to not display. If so there is no need to go any further
-		if($results && $results->displaytype == 4)
+		if($results && $results->displaytype == CPB_DISPLAY_DISABLED)
 		{
 			return $data; //no need to continue. It is currently disabled.
 		}
 		
 		if($display)
 		{
-			if($results && $results->displaytype != 1) //if it's set to only display on the main page, then only display on the main page
+			if($results && $results->displaytype != CPB_DISPLAY_MAINPAGE) //if it's set to only display on the main page, then only display on the main page
 			{
 				$new_data = "";
-				if($results->displaytype == 3) //DISPLAY AS PAGE BACKGROUND
+				if ($results->displaytype == CPB_DISPLAY_BACKGROUND || $results->displaytype == CPB_DISPLAY_WHOLEPAGE) 
 				{
 					$new_data = '<STYLE type="text/css">';
 					$new_data .= 'body {';
@@ -80,13 +87,15 @@
 				//do the style part
 				$new_data = custompostback_style($results, $new_data);
 				
-				if($results->displaytype == 3) //DISPLAY AS BACKGROUND
+				if ($results->displaytype == CPB_DISPLAY_BACKGROUND || $results->displaytype == CPB_DISPLAY_WHOLEPAGE) 
 				{
 					$new_data .= '}';
+					if ($results->displaytype == CPB_DISPLAY_WHOLEPAGE) 
+						$new_data .= ' #wrapper { background-color: transparent; }';
 					$new_data .= "</style>";
 					$data = $new_data . $data;
 				}
-				else if($results->displaytype == 0 || $results->displaytype == 2) //display only on post or both
+				else if($results->displaytype == CPB_DISPLAY_POSTPAGE || $results->displaytype == CPB_DISPLAY_BOTHPAGES) //display only on post or both
 				{
 					//add to the end of the actual data
 					$data = '<div style="'.$new_data.'">'.$data.'</div>';
@@ -95,7 +104,7 @@
 		}
 		else
 		{
-			if($results && ($results->displaytype == 1 || $results->displaytype == 2)) //check to see if it equals 1 (so that means to display it on the main page and archives) or on both
+			if($results && ($results->displaytype == CPB_DISPLAY_MAINPAGE || $results->displaytype == CPB_DISPLAY_BOTHPAGES)) //check to see if it equals 1 (so that means to display it on the main page and archives) or on both
 			{
 				$new_data = custompostback_style($results,$new_data);
 				$data = '<div style="'.$new_data.'">'.$data.'</div>';

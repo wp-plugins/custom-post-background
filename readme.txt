@@ -4,7 +4,7 @@ Donate link: http://blogtap.net/custom_post_background_plugin.shtml
 Tags: background, style, post, modification
 Requires at least: 2.0
 Tested up to: 3.1.1
-Stable tag: 1.3.0.0
+Stable tag: 1.3.1.0
 
 Create custom backgrounds or styles for your posts and pages.
 
@@ -26,6 +26,9 @@ Version 1.3.0.0 Updates
 -Implemented database version update
 -Admin page changed to meta-box on Page/Post edit pages
 -Display type changed from radio buttons to drop down list
+
+Version 1.3.1.0 Updates
+-Added Whole Page option - As "Page Background" but with transparent Post/Page background
 
 == Installation ==
 
